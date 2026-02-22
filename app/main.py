@@ -5,7 +5,7 @@ import tempfile
 from typing import Optional
 
 import pandas as pd
-from fastapi import FastAPI, File, Form, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
