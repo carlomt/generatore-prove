@@ -5,7 +5,7 @@ import tempfile
 from typing import Optional
 
 import pandas as pd
-from fastapi import FastAPI, File, Form, UploadFile, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 
@@ -13,6 +13,27 @@ from .exam_gen import build_pdf_from_dataframe
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
+
+
+def parse_optional_int(raw_value: Optional[str], field_name: str) -> Optional[int]:
+    if raw_value is None:
+        return None
+
+    value = str(raw_value).strip()
+    if value == "":
+        return None
+
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"{field_name} must be a valid integer") from exc
+
+
+def parse_required_int(raw_value: str, field_name: str) -> int:
+    parsed = parse_optional_int(raw_value, field_name)
+    if parsed is None:
+        raise HTTPException(status_code=422, detail=f"{field_name} is required")
+    return parsed
 
 
 def read_table(upload: UploadFile) -> pd.DataFrame:
@@ -65,24 +86,39 @@ def index(request: Request):
 @app.post("/generate")
 async def generate(
     file: UploadFile = File(...),
-    num_exams: int = Form(10),
-    num_questions: Optional[int] = Form(None),
-    seed: Optional[int] = Form(None),
+    num_exams: str = Form("10"),
+    num_questions: Optional[str] = Form(None),
+    seed: Optional[str] = Form(None),
     no_escape: bool = Form(False),
 ):
-    df = read_table(file)
-    df = normalize_df(df)
+    parsed_num_exams = parse_required_int(num_exams, "num_exams")
+    parsed_num_questions = parse_optional_int(num_questions, "num_questions")
+    parsed_seed = parse_optional_int(seed, "seed")
+
+    if parsed_num_exams <= 0:
+        raise HTTPException(status_code=422, detail="num_exams must be greater than 0")
+    if parsed_num_questions is not None and parsed_num_questions <= 0:
+        raise HTTPException(status_code=422, detail="num_questions must be greater than 0")
+
+    try:
+        df = read_table(file)
+        df = normalize_df(df)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     with tempfile.TemporaryDirectory() as tmp:
-        pdf_path = build_pdf_from_dataframe(
-            df=df,
-            num_exams=int(num_exams),
-            num_questions=(int(num_questions) if num_questions not in (None, "", "None") else None),
-            seed=(int(seed) if seed not in (None, "", "None") else None),
-            out_dir=tmp,
-            basename="compiti",
-            escape=(not no_escape),
-        )
+        try:
+            pdf_path = build_pdf_from_dataframe(
+                df=df,
+                num_exams=parsed_num_exams,
+                num_questions=parsed_num_questions,
+                seed=parsed_seed,
+                out_dir=tmp,
+                basename="compiti",
+                escape=(not no_escape),
+            )
+        except RuntimeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
         # FastAPI deve servire un file persistente; copiamo in /tmp esterno
         out_pdf = os.path.join(tempfile.gettempdir(), next(tempfile._get_candidate_names()) + "_compiti.pdf")
