@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Generatore compiti</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 1.2rem; }
+    label { display:block; margin-top: .8rem; }
+    input[type="number"], input[type="text"] { width: 220px; padding: .4rem; }
+    button { margin-top: 1rem; padding: .6rem 1rem; }
+    small { color:#555; }
+  </style>
+</head>
+<body>
+  <h1>Generatore compiti (PDF)</h1>
+
+  <div class="card">
+    <form action="/generate" method="post" enctype="multipart/form-data">
+      <label>File (CSV/Excel):
+        <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
+      </label>
+
+      <label>Numero compiti:
+        <input type="number" name="num_exams" value="10" min="1" max="500">
+      </label>
+
+      <label>Domande per compito (vuoto = tutte):
+        <input type="number" name="num_questions" min="1" max="500">
+      </label>
+
+      <label>Seed (vuoto = casuale):
+        <input type="number" name="seed">
+      </label>
+
+      <label>
+        <input type="checkbox" name="no_escape" value="true">
+        Non fare escaping LaTeX (solo se il file contiene già LaTeX valido)
+      </label>
+
+      <button type="submit">Genera PDF</button>
+      <p><small>Formato atteso: 1ª colonna = domanda, colonne successive = risposte.</small></p>
+    </form>
+  </div>
+</body>
+</html>
