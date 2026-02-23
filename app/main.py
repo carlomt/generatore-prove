@@ -13,6 +13,7 @@ from .exam_gen import build_pdf_from_dataframe
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
+generated_exams_count = 0
 
 
 def parse_optional_int(raw_value: Optional[str], field_name: str) -> Optional[int]:
@@ -80,7 +81,13 @@ def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "generated_exams_count": generated_exams_count,
+        },
+    )
 
 
 @app.post("/generate")
@@ -88,12 +95,12 @@ async def generate(
     file: UploadFile = File(...),
     num_exams: str = Form("10"),
     num_questions: Optional[str] = Form(None),
-    seed: Optional[str] = Form(None),
     no_escape: bool = Form(False),
 ):
+    global generated_exams_count
+
     parsed_num_exams = parse_required_int(num_exams, "num_exams")
     parsed_num_questions = parse_optional_int(num_questions, "num_questions")
-    parsed_seed = parse_optional_int(seed, "seed")
 
     if parsed_num_exams <= 0:
         raise HTTPException(status_code=422, detail="num_exams must be greater than 0")
@@ -112,7 +119,7 @@ async def generate(
                 df=df,
                 num_exams=parsed_num_exams,
                 num_questions=parsed_num_questions,
-                seed=parsed_seed,
+                seed=None,
                 out_dir=tmp,
                 basename="compiti",
                 escape=(not no_escape),
@@ -124,6 +131,8 @@ async def generate(
         out_pdf = os.path.join(tempfile.gettempdir(), next(tempfile._get_candidate_names()) + "_compiti.pdf")
         with open(pdf_path, "rb") as src, open(out_pdf, "wb") as dst:
             dst.write(src.read())
+
+    generated_exams_count += parsed_num_exams
 
     return FileResponse(
         out_pdf,

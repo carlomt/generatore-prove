@@ -11,10 +11,12 @@
     input[type="number"], input[type="text"] { width: 220px; padding: .4rem; }
     button { margin-top: 1rem; padding: .6rem 1rem; }
     small { color:#555; }
+    .author { margin-top: 1rem; color: #444; }
   </style>
 </head>
 <body>
   <h1>Generatore compiti (PDF)</h1>
+  <p><strong>Prove generate finora:</strong> {{ generated_exams_count }}</p>
 
   <div class="card">
     <form action="/generate" method="post" enctype="multipart/form-data">
@@ -30,10 +32,6 @@
         <input type="number" name="num_questions" min="1" max="500">
       </label>
 
-      <label>Seed (vuoto = casuale):
-        <input type="number" name="seed">
-      </label>
-
       <label>
         <input type="checkbox" name="no_escape" value="true">
         Non fare escaping LaTeX (solo se il file contiene già LaTeX valido)
@@ -42,6 +40,7 @@
       <button type="submit">Genera PDF</button>
       <p><small>Formato atteso: 1ª colonna = domanda, colonne successive = risposte.</small></p>
     </form>
+    <p class="author"><small>Autore: carlo.mancini-terracciano@uniroma1.it</small></p>
   </div>
 </body>
 </html>
