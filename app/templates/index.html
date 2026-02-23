@@ -23,10 +23,12 @@
       <label>File (CSV/Excel):
         <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
       </label>
-
-      <label>Numero compiti:
+      <p><small>Formato atteso del file: 1ª colonna = domanda, colonne successive = risposte.</small></p>
+      
+      <label>Numero compiti da generare:
         <input type="number" name="num_exams" value="10" min="1" max="500">
       </label>
+      <p><small>Produrr&agrave un unico file pdf.</small></p>
 
       <label>Domande per compito (vuoto = tutte):
         <input type="number" name="num_questions" min="1" max="500">
@@ -38,7 +40,7 @@
       </label>
 
       <button type="submit">Genera PDF</button>
-      <p><small>Formato atteso: 1ª colonna = domanda, colonne successive = risposte.</small></p>
+
     </form>
     <p class="author"><small>Autore: <a href="mailto:carlo.mancini-terracciano@uniroma1.it">carlo.mancini-terracciano@uniroma1.it</a></small></p>
   </div>
