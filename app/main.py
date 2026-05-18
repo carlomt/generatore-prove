@@ -1,7 +1,7 @@
-# app/main.py
 import io
 import os
 import tempfile
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -14,6 +14,7 @@ from .exam_gen import build_pdf_from_dataframe
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
 generated_exams_count = 0
+DEFAULT_TEMPLATE_PATH = Path("quiz_style_template.tex")
 
 
 def parse_optional_int(raw_value: Optional[str], field_name: str) -> Optional[int]:
@@ -45,36 +46,25 @@ def read_table(upload: UploadFile) -> pd.DataFrame:
         raise ValueError("Empty file")
 
     if name.endswith(".xlsx") or name.endswith(".xls"):
-        # Excel
         return pd.read_excel(io.BytesIO(content))
 
-    # CSV (prova separatori)
     text = content.decode("utf-8-sig", errors="replace")
-    for sep in [";", ",", "\t"]:
+    for sep in [";", ",", "	"]:
         try:
             df = pd.read_csv(io.StringIO(text), sep=sep)
-            # euristica: almeno 2 colonne (domanda + risposte)
             if df.shape[1] >= 2:
                 return df
         except Exception:
             pass
-    # ultimo tentativo default pandas
     return pd.read_csv(io.StringIO(text))
 
 
 def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
-    # Se excel ha intestazioni strane, tieni tutto come valori
-    # qui assumiamo: prima colonna = domanda, le altre = risposte
     if df.shape[1] < 2:
         raise ValueError("Need at least 2 columns: question + answers")
 
-    # Rimuovi colonne completamente vuote
     df = df.dropna(axis=1, how="all")
-
-    # Rimuovi righe completamente vuote
     df = df.dropna(axis=0, how="all")
-
-    # Converte NaN in stringa vuota (evita 'nan' nelle risposte)
     df = df.fillna("")
     return df
 
@@ -90,9 +80,22 @@ def index(request: Request):
     )
 
 
+@app.get("/template")
+def download_template():
+    if not DEFAULT_TEMPLATE_PATH.exists():
+        raise HTTPException(status_code=404, detail="Template file not found")
+
+    return FileResponse(
+        str(DEFAULT_TEMPLATE_PATH),
+        media_type="application/x-tex",
+        filename="quiz_style_template.tex",
+    )
+
+
 @app.post("/generate")
 async def generate(
     file: UploadFile = File(...),
+    template_file: Optional[UploadFile] = File(None),
     num_exams: str = Form("10"),
     num_questions: Optional[str] = Form(None),
     no_escape: bool = Form(False),
@@ -114,6 +117,14 @@ async def generate(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     with tempfile.TemporaryDirectory() as tmp:
+        template_path = DEFAULT_TEMPLATE_PATH
+        if template_file is not None and template_file.filename:
+            template_content = await template_file.read()
+            if not template_content:
+                raise HTTPException(status_code=400, detail="Uploaded template is empty")
+            template_path = Path(tmp) / "uploaded_template.tex"
+            template_path.write_bytes(template_content)
+
         try:
             pdf_path = build_pdf_from_dataframe(
                 df=df,
@@ -121,13 +132,15 @@ async def generate(
                 num_questions=parsed_num_questions,
                 seed=None,
                 out_dir=tmp,
+                template_path=str(template_path),
                 basename="compiti",
                 escape=(not no_escape),
             )
         except RuntimeError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        # FastAPI deve servire un file persistente; copiamo in /tmp esterno
         out_pdf = os.path.join(tempfile.gettempdir(), next(tempfile._get_candidate_names()) + "_compiti.pdf")
         with open(pdf_path, "rb") as src, open(out_pdf, "wb") as dst:
             dst.write(src.read())
