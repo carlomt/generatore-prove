@@ -315,41 +315,34 @@ def compile_latex_to_pdf(tex_path: str, output_dir: str, runs: int = 2) -> None:
 
     encoding/errors avoid crashes when pdflatex writes non-UTF8 messages.
     """
+    tex_abs = os.path.abspath(tex_path)
+    output_abs = os.path.abspath(output_dir)
+    tex_name = os.path.basename(tex_abs)
+
     cmd = [
-        "pdflatex",
+        "latexmk",
+        "-pdf",
         "-interaction=nonstopmode",
-        "-output-directory",
-        output_dir,
-        tex_path,
+        "-halt-on-error",
+        tex_name,
     ]
 
-    last_run = None
+    r = subprocess.run(
+        cmd,
+        cwd=output_abs,
+        capture_output=True,
+        text=True,
+        encoding="latin-1",
+        errors="replace",
+    )
 
-    for _ in range(runs):
-        last_run = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="latin-1",
-            errors="replace",
+    if r.returncode != 0:
+        raise RuntimeError(
+            "latexmk/pdflatex failed\n"
+            f"STDOUT:\n{r.stdout}\n"
+            f"STDERR:\n{r.stderr}"
         )
-
-        if last_run.returncode != 0:
-            raise RuntimeError(
-                "pdflatex failed\n"
-                f"STDOUT:\n{last_run.stdout}\n"
-                f"STDERR:\n{last_run.stderr}"
-            )
-
-    if last_run is not None:
-        unresolved = "??" in last_run.stdout
-        if unresolved:
-            print(
-                "Warning: LaTeX may still contain unresolved references. "
-                "Try compiling once more or check the .log file."
-            )
-
-
+    
 def build_pdf_from_template(
     df: pd.DataFrame,
     template_path: str,

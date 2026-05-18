@@ -86,7 +86,13 @@ def compile_latex_to_pdf(tex_path: str, output_dir: str) -> None:
         "-output-directory", output_dir,
         tex_path
     ]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="latin-1",
+        errors="replace",
+    )
     if r.returncode != 0:
         raise RuntimeError(f"pdflatex failed\nSTDOUT:\n{r.stdout}\nSTDERR:\n{r.stderr}")
 
