@@ -1,0 +1,6 @@
+services:
+  examweb:
+    image: ghcr.io/carlomt/generatore-prove:latest
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
