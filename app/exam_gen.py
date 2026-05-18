@@ -3,6 +3,7 @@
 
 import os
 import subprocess
+import numpy as np
 import pandas as pd
 
 
@@ -45,10 +46,11 @@ def generate_single_tex_all_exams(
     latex.append(r"\usepackage{lmodern}")
     latex.append(r"\begin{document}")
 
-    for exam_idx in range(1, num_exams + 1):
-        seed = None if base_seed is None else (base_seed + exam_idx - 1)
+    rng = np.random.default_rng(base_seed)
 
-        exam_df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    for exam_idx in range(1, num_exams + 1):
+        question_order = rng.permutation(len(df))
+        exam_df = df.iloc[question_order].reset_index(drop=True)
         if num_questions is not None and num_questions < len(exam_df):
             exam_df = exam_df.head(num_questions)
 
@@ -59,10 +61,8 @@ def generate_single_tex_all_exams(
             question_text = maybe_escape(row.iloc[0])
 
             answers = [row.iloc[j] for j in range(1, len(row))]
-            answers_series = pd.Series(answers)
-
-            ans_seed = None if seed is None else (seed * 100000 + q_idx)
-            answers_series = answers_series.sample(frac=1, random_state=ans_seed).reset_index(drop=True)
+            answer_order = rng.permutation(len(answers))
+            answers_series = pd.Series([answers[idx] for idx in answer_order])
 
             latex.append(rf"\subsection*{{Domanda {q_idx+1}}}")
             latex.append(question_text + r"\par")
