@@ -4,36 +4,112 @@
   <meta charset="utf-8">
   <title>Generatore compiti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 1.2rem; }
-    label { display:block; margin-top: .8rem; }
-    input[type="number"], input[type="text"] { width: 220px; padding: .4rem; }
-    button { margin-top: 1rem; padding: .6rem 1rem; }
-    small { color:#555; }
-    .author { margin-top: 1rem; color: #444; }
+    body {
+      font-family: sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 1.2rem;
+    }
+
+    label {
+      display: block;
+      margin-top: .8rem;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 420px;
+      max-width: 100%;
+      padding: .4rem;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: .6rem 1rem;
+    }
+
+    small {
+      color: #555;
+    }
+
+    .author {
+      margin-top: 1rem;
+      color: #444;
+    }
+
+    .section-title {
+      margin-top: 1.4rem;
+      font-weight: bold;
+    }
   </style>
 </head>
+
 <body>
   <h1>Generatore compiti (PDF)</h1>
+
   <p><strong>Prove generate finora:</strong> {{ generated_exams_count }}</p>
 
   <div class="card">
     <form action="/generate" method="post" enctype="multipart/form-data">
+      <p class="section-title">File di input</p>
+
       <label>File (CSV/Excel):
         <input type="file" name="file" accept=".csv,.xlsx,.xls" required>
       </label>
-      <p><small>Formato atteso del file: 1ª colonna = domanda, colonne successive = risposte.</small></p>
+
+      <p>
+        <small>
+          Formato atteso del file: 1ª colonna = domanda, colonne successive = risposte.
+        </small>
+      </p>
 
       <label>Template LaTeX opzionale (.tex):
         <input type="file" name="template_file" accept=".tex">
       </label>
-      <p><small>Se non carichi nulla, verrà usato il template di default: <code>quiz_style_template.tex</code>. <a href="/template">Scarica il template di default</a>.</small></p>
+
+      <p>
+        <small>
+          Se non carichi nulla, verrà usato il template di default:
+          <code>quiz_style_template.tex</code>.
+          <a href="/template">Scarica il template di default</a>.
+        </small>
+      </p>
+
+      <p class="section-title">Intestazione del compito</p>
+
+      <label>Titolo:
+        <input
+          type="text"
+          name="title"
+          value="{{ default_title }}"
+        >
+      </label>
+
+      <label>Sottotitolo:
+        <input
+          type="text"
+          name="subtitle"
+          value="{{ default_subtitle }}"
+        >
+      </label>
+
+      <p class="section-title">Opzioni di generazione</p>
 
       <label>Numero compiti da generare:
         <input type="number" name="num_exams" value="10" min="1" max="500">
       </label>
-      <p><small>Produrr&agrave un unico file pdf.</small></p>
+
+      <p>
+        <small>Produrrà un unico file PDF.</small>
+      </p>
 
       <label>Domande per compito (vuoto = tutte):
         <input type="number" name="num_questions" min="1" max="500">
@@ -41,13 +117,28 @@
 
       <label>
         <input type="checkbox" name="no_escape" value="true">
-        Non fare escaping LaTeX (solo se il file contiene già LaTeX valido)
+        Non fare escaping LaTeX
+        <small>
+          — usa questa opzione solo se il file contiene già LaTeX valido.
+        </small>
+      </label>
+
+      <label>
+        <input type="checkbox" name="no_answer_labels" value="true">
+        Non aggiungere etichette a), b), c) alle risposte
       </label>
 
       <button type="submit">Genera PDF</button>
-
     </form>
-    <p class="author"><small>Autore: <a href="mailto:carlo.mancini-terracciano@uniroma1.it">carlo.mancini-terracciano@uniroma1.it</a></small></p>
+
+    <p class="author">
+      <small>
+        Autore:
+        <a href="mailto:carlo.mancini-terracciano@uniroma1.it">
+          carlo.mancini-terracciano@uniroma1.it
+        </a>
+      </small>
+    </p>
   </div>
 </body>
 </html>
